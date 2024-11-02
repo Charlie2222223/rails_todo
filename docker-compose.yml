@@ -12,12 +12,12 @@ services:
 
   frontend:
     build:
-      context: ./frontend/vite-project
+      context: ./frontend
       dockerfile: Dockerfile
     ports:
       - "5173:5173"  # ローカルの8080ポートをコンテナの8080ポートにマッピング
     volumes:
-      - ./frontend/vite-project:/app  # 必要なディレクトリのみマウント
+      - ./frontend:/app  # 必要なディレクトリのみマウント
       - /app/node_modules
     environment:
       - NODE_ENV=development
