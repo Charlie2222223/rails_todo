@@ -9,37 +9,38 @@ services:
     command: --default-authentication-plugin=mysql_native_password
     volumes:
       - mysql-data:/var/lib/mysql
+
   frontend:
     build:
-      context: ./frontend
+      context: ./frontend/vite-project
       dockerfile: Dockerfile
-        #  args
-        #  WORKDIR: app
-    volumes:
-      - ./frontend/vite-project:/app/vite-project
     ports:
-      - '5173:5173'
-    depends_on:
-      - backend
-    tty: true
-    command: yarn dev --host
+      - "5173:5173"  # ローカルの8080ポートをコンテナの8080ポートにマッピング
+    volumes:
+      - ./frontend/vite-project:/app  # 必要なディレクトリのみマウント
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-      args:  #=== Dockerfileに引数として渡せる
+      args:
         WORKDIR: app
     command: bash -c "rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"
+    entrypoint: ["bash", "-c", "bundle exec rails db:create db:migrate && rm -f tmp/pids/server.pid && bundle exec rails s -p 3000 -b '0.0.0.0'"]
     volumes:
       - './backend:/app'
     ports:
       - "3000:3000"
     environment:
-        RAILS_ENV: development
+      RAILS_ENV: development
     depends_on:
-       - db
+      - db
     stdin_open: true
     tty: true
+
 volumes:
   mysql-data:
     driver: local

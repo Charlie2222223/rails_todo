@@ -1,61 +1,101 @@
 <template>
-    <div>
-        <!-- タイトル -->
-        <h1>To-Do List</h1>
+    <v-app>
+      <v-container class="py-5">
+        <v-card class="elevation-3" color="primary" dark>
+          <v-card-title class="headline"> To-Do List</v-card-title>
+        </v-card>
+  
+        <v-card class="my-5 pa-4 elevation-2">
+          <!-- 新しいTo-Doアイテムを追加するフォーム -->
+          <v-form @submit.prevent="addTodo" class="d-flex align-center">
+            <v-text-field
+              v-model="newTodo"
+              label="Add a new task"
+              outlined
+              dense
+              hide-details
+              class="flex-grow-1"
+              color="primary"
+            ></v-text-field>
+            <v-btn type="submit" color="accent" class="d-flex align-center">
+              <v-icon left>mdi-plus</v-icon>
+              ADD
+            </v-btn>
+          </v-form>
+        </v-card>
+  
+        <!-- To-Doリストの表示 -->
+        <v-card class="elevation-1">
+          <v-list>
+            <v-list-item v-for="todo in todos" :key="todo.id" class="my-2">
+              <v-list-item-content>
+                <v-list-item-title>{{ todo.title }}</v-list-item-title>
+              </v-list-item-content>
+              <v-list-item-action>
+                <v-btn icon color="red lighten-1" @click="deleteTodo(todo.id)">
+                  <v-icon>mdi-delete</v-icon>
+                </v-btn>
+              </v-list-item-action>
+            </v-list-item>
+          </v-list>
+        </v-card>
+      </v-container>
+    </v-app>
+  </template>
+  
+  <script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import api from '../api';
 
-        <!-- 新しいTo-Doアイテムを追加するフォーム -->
-        <form @submit.prevent="addTodo">
-        <!-- 新しいタスクを入力するための入力フィールド -->
-        <input v-model="newTodo" placeholder="Add a new task" />
-        <button type="submit">Add</button>
-        </form>
+// 型定義
+interface Todo {
+  id: number;
+  title: string;
+  completed: boolean;
+}
 
-        <!-- To-Doリストを表示する -->
-        <ul>
-        <!-- todosリストの各項目をループで表示 -->
-        <li v-for="todo in todos" :key="todo.id">
-            <span>{{ todo.title }}</span>
-            <!-- To-Doアイテムを削除するボタン -->
-            <button @click="deleteTodo(todo.id)">Delete</button>
-        </li>
-        </ul>
-    </div>
-</template>
+const todos = ref<Todo[]>([]);
+const newTodo = ref<string>('');
+
+// To-DoリストをAPIから取得
+const fetchTodos = async () => {
+  const response = await api.getTodos();
+  todos.value = response.data as Todo[]; // 型アサーション
+};
+
+// 新しいTo-Doアイテムを追加
+const addTodo = async () => {
+  if (!newTodo.value.trim()) return;
+  await api.createTodo({ title: newTodo.value, completed: false });
+  newTodo.value = '';
+  await fetchTodos();
+};
+
+// To-Doアイテムを削除
+const deleteTodo = async (id: number) => {
+  await api.deleteTodo(id);
+  await fetchTodos();
+};
+
+// コンポーネントのマウント時にTo-Doリストを取得
+onMounted(fetchTodos);
   
-<script>
-  import api from '../api'; // API通信を行うファイルをインポート
+  // コンポーネントのマウント時にTo-Doリストを取得
+  onMounted(fetchTodos);
+  </script>
   
-  export default {
-    data() {
-      return {
-        todos: [], // To-Doアイテムのリスト
-        newTodo: '', // 新しいTo-Doアイテムのタイトル
-      };
-    },
-    mounted() {
-      // コンポーネントがマウントされたときにTo-Doリストを取得
-      this.fetchTodos();
-    },
-    methods: {
-      // To-DoリストをAPIから取得するメソッド
-      async fetchTodos() {
-        const response = await api.getTodos();
-        this.todos = response.data; // APIから取得したデータをtodosに格納
-      },
-  
-      // 新しいTo-Doアイテムを追加するメソッド
-      async addTodo() {
-        const todo = { title: this.newTodo, completed: false }; // 新しいTo-Doの内容
-        await api.createTodo(todo); // APIを通じて新しいTo-Doを作成
-        this.newTodo = ''; // 入力フィールドをクリア
-        this.fetchTodos(); // 最新のTo-Doリストを取得
-      },
-  
-      // 指定されたIDのTo-Doアイテムを削除するメソッド
-      async deleteTodo(id) {
-        await api.deleteTodo(id); // APIを通じてTo-Doを削除
-        this.fetchTodos(); // 最新のTo-Doリストを取得
-      },
-    },
-  };
-</script>
+  <style scoped>
+  h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+  }
+  .v-card-title {
+    font-size: 1.5rem;
+  }
+  .v-card {
+    border-radius: 12px;
+  }
+  .v-list-item-title {
+    font-size: 1.2rem;
+  }
+  </style>
